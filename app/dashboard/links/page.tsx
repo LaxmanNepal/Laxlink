@@ -1,45 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect,useState } from 'react'
+type LinkItem={id:string;slug:string;targetUrl:string;clicks:number;status?:string;active?:boolean;expiresAt?:string|null}
 
-type LinkItem = { id: string; slug: string; targetUrl: string; clicks: number; status?: string; active?: boolean }
-
-export default function LinksPage() {
-  const [links, setLinks] = useState<LinkItem[]>([])
-  const [targetUrl, setTargetUrl] = useState('')
-  const [slug, setSlug] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
-
-  async function load() {
-    const response = await fetch('/api/links', { cache: 'no-store' })
-    if (!response.ok) return
-    const data = await response.json()
-    setLinks(data.links || data.data || [])
-  }
-  useEffect(() => { void load() }, [])
-
-  async function create() {
-    setBusy(true); setMessage('')
-    try {
-      const response = await fetch('/api/links', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: targetUrl, slug: slug || undefined }) })
-      const data = await response.json()
-      if (!response.ok) setMessage(data.error || 'Could not create link')
-      else { setTargetUrl(''); setSlug(''); setMessage('Link created'); await load() }
-    } catch { setMessage('Network error') }
-    finally { setBusy(false) }
-  }
-
-  return <main className="dashmain">
-    <div className="dashhead"><div><small className="muted">LAXLINK</small><h1>Links</h1><p className="muted">Create, manage and optimize every smart link.</p></div></div>
-    <section className="card createbox"><div className="creategrid">
-      <label>Destination<input className="input" value={targetUrl} onChange={e => setTargetUrl(e.target.value)} placeholder="https://example.com/product" /></label>
-      <label>Custom slug<input className="input" value={slug} onChange={e => setSlug(e.target.value)} placeholder="summer-sale" /></label>
-      <button className="btn primary createbtn" disabled={busy || !targetUrl} onClick={create}>{busy ? 'Creating…' : 'Create link'}</button>
-    </div>{message && <p className="muted">{message}</p>}</section>
-    <section className="card tablewrap"><table className="table"><thead><tr><th>Short link</th><th>Destination</th><th>Clicks</th><th>Status</th></tr></thead><tbody>
-      {links.map(link => <tr key={link.id}><td><a className="linkurl" href={`/r/${link.slug}`}>/r/{link.slug}</a></td><td><div className="truncate">{link.targetUrl}</div></td><td>{link.clicks}</td><td><span className="pill">{link.status || (link.active ? 'ACTIVE' : 'PAUSED')}</span></td></tr>)}
-      {!links.length && <tr><td colSpan={4} className="empty muted">No links yet.</td></tr>}
-    </tbody></table></section>
-  </main>
+export default function LinksPage(){
+ const [links,setLinks]=useState<LinkItem[]>([]),[targetUrl,setTargetUrl]=useState(''),[slug,setSlug]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('')
+ async function load(){const r=await fetch('/api/links',{cache:'no-store'});if(r.ok){const d=await r.json();setLinks(d.links||d.data||[])}}
+ useEffect(()=>{void load()},[])
+ async function create(){setBusy(true);setMessage('');try{const r=await fetch('/api/links',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:targetUrl,slug:slug||undefined})});const d=await r.json();if(!r.ok)setMessage(d.error||'Could not create link');else{setTargetUrl('');setSlug('');setMessage('Link created');await load()}}catch{setMessage('Network error')}finally{setBusy(false)}}
+ async function toggle(link:LinkItem){setBusy(true);try{const r=await fetch('/api/links/'+encodeURIComponent(link.slug),{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({active:!link.active})});if(!r.ok)throw new Error();await load()}catch{setMessage('Could not update link')}finally{setBusy(false)}}
+ async function remove(link:LinkItem){if(!confirm('Delete '+link.slug+'?'))return;setBusy(true);try{const r=await fetch('/api/links/'+encodeURIComponent(link.slug),{method:'DELETE'});if(!r.ok)throw new Error();await load()}catch{setMessage('Could not delete link')}finally{setBusy(false)}}
+ return <main className="dashmain"><div className="dashhead"><div><small className="muted">LAXLINK</small><h1>Links</h1><p className="muted">Create, pause and manage every smart link.</p></div></div>
+ <section className="card createbox"><div className="creategrid"><label>Destination<input className="input" value={targetUrl} onChange={e=>setTargetUrl(e.target.value)} placeholder="https://example.com/product"/></label><label>Custom slug<input className="input" value={slug} onChange={e=>setSlug(e.target.value)} placeholder="summer-sale"/></label><button className="btn primary createbtn" disabled={busy||!targetUrl} onClick={create}>{busy?'Creating…':'Create link'}</button></div>{message&&<p className="muted">{message}</p>}</section>
+ <section className="card tablewrap"><table className="table"><thead><tr><th>Short link</th><th>Destination</th><th>Clicks</th><th>Status</th><th>Actions</th></tr></thead><tbody>{links.map(link=><tr key={link.id}><td><a className="linkurl" href={'/r/'+link.slug} target="_blank">/r/{link.slug}</a>{link.expiresAt&&<small className="muted">Expires {new Date(link.expiresAt).toLocaleDateString()}</small>}</td><td><div className="truncate">{link.targetUrl}</div></td><td>{link.clicks}</td><td><span className="pill">{link.status||(link.active?'ACTIVE':'PAUSED')}</span></td><td><div style={{display:'flex',gap:8}}><button className="btn secondary" disabled={busy} onClick={()=>toggle(link)}>{link.active?'Pause':'Activate'}</button><button className="btn secondary" disabled={busy} onClick={()=>remove(link)}>Delete</button></div></td></tr>)}{!links.length&&<tr><td colSpan={5} className="empty muted">No links yet.</td></tr>}</tbody></table></section></main>
 }
