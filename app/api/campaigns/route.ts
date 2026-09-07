@@ -1,0 +1,7 @@
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { getSessionUser } from '@/lib/auth'
+const schema = z.object({ workspaceId: z.string(), name: z.string().min(1).max(100), source: z.string().max(100).optional(), medium: z.string().max(100).optional(), campaign: z.string().max(100).optional(), linkIds: z.array(z.string()).default([]) })
+export async function GET() { const user=await getSessionUser(); if(!user)return NextResponse.json({error:'Unauthorized'},{status:401}); const memberships=await prisma.membership.findMany({where:{userId:user.id},select:{workspaceId:true}}); const ids=memberships.map(x=>x.workspaceId); return NextResponse.json(await prisma.campaign.findMany({where:{workspaceId:{in:ids}},include:{links:true},orderBy:{createdAt:'desc'}})) }
+export async function POST(req:Request){try{const user=await getSessionUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});const x=schema.parse(await req.json());const member=await prisma.membership.findUnique({where:{userId_workspaceId:{userId:user.id,workspaceId:x.workspaceId}}});if(!member)return NextResponse.json({error:'Forbidden'},{status:403});const c=await prisma.campaign.create({data:{workspaceId:x.workspaceId,name:x.name,source:x.source,medium:x.medium,campaign:x.campaign,links:{create:x.linkIds.map(linkId=>({linkId}))}}});return NextResponse.json(c,{status:201})}catch(e){return NextResponse.json({error:e instanceof Error?e.message:'Invalid request'},{status:400})}}
