@@ -1,0 +1,2 @@
+import Link from 'next/link';import {getSessionUser} from '@/lib/auth'
+export default async function Settings(){const u=await getSessionUser();if(!u)return <main className="page"><Link href="/login">Login</Link></main>;return <main className="page"><Link href="/dashboard">← Dashboard</Link><h1>Settings</h1><section className="panel"><h2>Account</h2><p>{u.name||'LaxLink user'}</p><p>{u.email}</p></section><section className="panel"><h2>Platform</h2><p>Workspace, API, domains, billing and security controls are being unified under this settings area.</p></section></main>}
