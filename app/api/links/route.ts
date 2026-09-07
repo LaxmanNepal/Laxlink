@@ -12,6 +12,19 @@ const schema = z.object({
   iosUrl: optionalUrl,
 })
 
+const alphabet='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+function randomSlug(length=7){
+  const bytes=crypto.getRandomValues(new Uint8Array(length))
+  return Array.from(bytes,b=>alphabet[b%alphabet.length]).join('')
+}
+async function uniqueSlug(){
+  for(let i=0;i<8;i++){
+    const slug=randomSlug()
+    const exists=await prisma.link.findUnique({where:{slug},select:{id:true}})
+    if(!exists) return slug
+  }
+  return crypto.randomUUID().replace(/-/g,'').slice(0,10)
+}
 function safeOptionalUrl(value?: string) {
   return value ? validateTargetUrl(value) : undefined
 }
@@ -29,16 +42,10 @@ export async function POST(req: Request) {
     const targetUrl = validateTargetUrl(parsed.data.url)
     const androidUrl = safeOptionalUrl(parsed.data.androidUrl)
     const iosUrl = safeOptionalUrl(parsed.data.iosUrl)
-    const slug = parsed.data.slug ? normalizeSlug(parsed.data.slug) : crypto.randomUUID().slice(0, 8)
+    const slug = parsed.data.slug ? normalizeSlug(parsed.data.slug) : await uniqueSlug()
 
     const link = await prisma.link.create({
-      data: {
-        slug,
-        targetUrl,
-        title: parsed.data.title || undefined,
-        androidUrl,
-        iosUrl,
-      },
+      data: { slug, targetUrl, title: parsed.data.title || undefined, androidUrl, iosUrl },
     })
 
     return NextResponse.json({ link }, { status: 201 })
@@ -46,7 +53,7 @@ export async function POST(req: Request) {
     if (e instanceof TypeError || e instanceof Error && /URL|protocol|credential|Invalid slug/i.test(e.message)) {
       return NextResponse.json({ error: e instanceof Error ? e.message : 'Invalid URL' }, { status: 400 })
     }
-    if ((e as { code?: string }).code === 'P2002') return NextResponse.json({ error: 'Slug already exists' }, { status: 409 })
+    if ((e as { code?: string }).code === 'P2002') return NextResponse.json({ error: 'Slug already exists. Please choose another one.' }, { status: 409 })
     return NextResponse.json({ error: 'Unable to create link' }, { status: 500 })
   }
 }
