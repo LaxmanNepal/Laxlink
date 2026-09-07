@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+
+export async function GET(req:Request,{params}:{params:Promise<{slug:string}>}){const {slug}=await params;const link=await prisma.link.findUnique({where:{slug}});if(!link||!link.active)return new NextResponse('Link not found',{status:404});const ua=req.headers.get('user-agent');const referer=req.headers.get('referer');const device=/mobile|android|iphone|ipad/i.test(ua||'')?'mobile':'desktop';await prisma.$transaction([prisma.link.update({where:{id:link.id},data:{clicks:{increment:1}}}),prisma.clickEvent.create({data:{linkId:link.id,userAgent:ua,referer,device}})]);return NextResponse.redirect(link.targetUrl,302)}
