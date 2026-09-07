@@ -1,28 +1,29 @@
 # LaxLink
 
-A full-stack smart-link platform inspired by modern deep-linking and URL-shortening services.
+A production-oriented smart-link platform inspired by the problem space of OpenInApp, with an original UI and architecture.
 
-## Phase 1
+## Stack
+- Next.js App Router + React + TypeScript
+- PostgreSQL + Prisma
+- REST API
+- Responsive SaaS dashboard
 
-- Responsive landing page
+## Run locally
+1. Install Node.js 20.9+.
+2. Copy `.env.example` to `.env` and set `DATABASE_URL`.
+3. Run `npm install`.
+4. Run `npx prisma generate` and `npx prisma db push`.
+5. Run `npm run dev`.
+
+Open `http://localhost:3000`.
+
+## Current MVP
+- Landing page
 - Link creation API
-- Short-link redirect engine
-- Click analytics foundation
-- PostgreSQL schema
-- Redis-ready architecture
-- Docker development environment
+- Custom slugs
+- PostgreSQL link/event schema
+- Redirect engine with click/device tracking
+- Responsive dashboard foundation
 
-## Architecture
-
-```text
-apps/web        Frontend dashboard
-apps/api        Backend API
-packages/db     Database schema and client
-packages/shared Shared types/utilities
-services/redirect-engine Smart redirect service
-docs             Architecture and API documentation
-```
-
-## Status
-
-Phase 1 repository foundation.
+## Roadmap
+Authentication, persistent dashboard creation, QR codes, analytics charts, device/app routing, custom domains, API keys, rate limiting, bot filtering, teams, billing and admin console.
