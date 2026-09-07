@@ -2,26 +2,32 @@
 
 import { useEffect, useState } from 'react'
 
+type LinkItem = { id: string; slug: string; targetUrl: string; clicks: number; status?: string; active?: boolean }
+
 export default function LinksPage() {
-  const [links, setLinks] = useState<any[]>([])
+  const [links, setLinks] = useState<LinkItem[]>([])
   const [targetUrl, setTargetUrl] = useState('')
   const [slug, setSlug] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
   async function load() {
-    const response = await fetch('/api/links')
-    if (response.ok) setLinks((await response.json()).links || (await response.json()).data || [])
+    const response = await fetch('/api/links', { cache: 'no-store' })
+    if (!response.ok) return
+    const data = await response.json()
+    setLinks(data.links || data.data || [])
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { void load() }, [])
 
   async function create() {
     setBusy(true); setMessage('')
-    const response = await fetch('/api/links', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ targetUrl, slug: slug || undefined }) })
-    const data = await response.json()
-    if (!response.ok) setMessage(data.error || 'Could not create link')
-    else { setTargetUrl(''); setSlug(''); setMessage('Link created'); load() }
-    setBusy(false)
+    try {
+      const response = await fetch('/api/links', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: targetUrl, slug: slug || undefined }) })
+      const data = await response.json()
+      if (!response.ok) setMessage(data.error || 'Could not create link')
+      else { setTargetUrl(''); setSlug(''); setMessage('Link created'); await load() }
+    } catch { setMessage('Network error') }
+    finally { setBusy(false) }
   }
 
   return <main className="dashmain">
