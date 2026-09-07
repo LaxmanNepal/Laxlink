@@ -1,0 +1,4 @@
+import Link from 'next/link'
+import {getSessionUser} from '@/lib/auth'
+import {prisma} from '@/lib/prisma'
+export default async function TeamPage(){const user=await getSessionUser();if(!user)return <main className="page"><Link href="/login">Login</Link></main>;const memberships=await prisma.membership.findMany({where:{userId:user.id},include:{workspace:true},orderBy:{createdAt:'asc'}});return <main className="dashmain"><div className="dashhead"><div><span className="eyebrow">LAXLINK / WORKSPACE</span><h1>Team & workspaces</h1><p className="muted">Your current memberships and roles.</p></div></div><section className="grid">{memberships.map(m=><article className="card" key={m.id}><h2>{m.workspace.name}</h2><p className="muted">/{m.workspace.slug}</p><span className="pill">{m.role}</span></article>)}{!memberships.length&&<article className="card"><p>No workspace memberships found.</p></article>}</section></main>}
