@@ -2,25 +2,72 @@ generator client { provider = "prisma-client-js" }
 
 datasource db { provider = "postgresql" url = env("DATABASE_URL") }
 
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String?
+  createdAt DateTime @default(now())
+  links Link[]
+  apiKeys ApiKey[]
+  domains Domain[]
+}
 model Link {
-  id        String   @id @default(cuid())
-  slug      String   @unique
+  id String @id @default(cuid())
+  slug String @unique
   targetUrl String
-  active    Boolean  @default(true)
-  clicks    Int      @default(0)
+  title String?
+  androidUrl String?
+  iosUrl String?
+  active Boolean @default(true)
+  clicks Int @default(0)
+  ownerId String?
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  events    ClickEvent[]
+  events ClickEvent[]
+  rules SmartRule[]
+  @@index([ownerId, createdAt])
 }
-
 model ClickEvent {
-  id        String   @id @default(cuid())
-  linkId    String
-  link      Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+  linkId String
+  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
   userAgent String?
-  referer   String?
-  country   String?
-  device    String?
+  referer String?
+  country String?
+  device String?
+  isBot Boolean @default(false)
   createdAt DateTime @default(now())
   @@index([linkId, createdAt])
+  @@index([device, createdAt])
+}
+model SmartRule {
+  id String @id @default(cuid())
+  linkId String
+  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  type String
+  match String
+  targetUrl String
+  priority Int @default(0)
+  active Boolean @default(true)
+  @@index([linkId, priority])
+}
+model ApiKey {
+  id String @id @default(cuid())
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name String
+  prefix String
+  keyHash String @unique
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+  @@index([userId, createdAt])
+}
+model Domain {
+  id String @id @default(cuid())
+  userId String?
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hostname String @unique
+  verified Boolean @default(false)
+  createdAt DateTime @default(now())
 }
